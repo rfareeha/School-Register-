@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>School Register App (Single Page)</title>
+  <style>
+    :root{
+      --bg:#0b1220;--card:#111a2e;--muted:#93a3b8;--text:#e7eefb;--accent:#6ea8fe;--accent-2:#77e6b6;--danger:#ff6b6b;--warn:#ffd166;
+      --radius:16px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:linear-gradient(180deg,#0b1220 0%,#0d1424 100%);color:var(--text);font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";}
+    a{color:var(--accent)}
+    .container{max-width:1100px;margin:0 auto;padding:20px}
+    header{position:sticky;top:0;background:rgba(13,20,36,0.8);backdrop-filter: blur(8px);z-index:10;border-bottom:1px solid #1c2742}
+    .nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .brand{font-weight:700;letter-spacing:.3px;margin-right:auto;display:flex;align-items:center;gap:10px}
+    .brand .logo{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:inline-block}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap}
+    .tab{padding:10px 14px;border:1px solid #1c2742;border-radius:999px;background:#0f172a;cursor:pointer;color:#cbd5e1}
+    .tab.active{background:linear-gradient(135deg,#15213f,#0f1a33);color:var(--text);border-color:#253254}
+    .grid{display:grid;gap:16px}
+    .card{background:var(--card);border:1px solid #1c2742;border-radius:var(--radius);padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    .row{display:flex;gap:12px;flex-wrap:wrap}
+    .row > *{flex:1 1 220px}
+    label{font-size:.85rem;color:var(--muted)}
+    input,select,button,textarea{width:100%;padding:10px 12px;border-radius:12px;border:1px solid #1f2947;background:#0c1428;color:var(--text);}
+    input:focus,select:focus,textarea:focus{outline:2px solid #334a7a;border-color:#334a7a}
+    button{cursor:pointer}
+    .btn{background:linear-gradient(135deg,#162342,#0f1b34);border-color:#273863}
+    .btn.primary{background:linear-gradient(180deg,#2a4ea4,#1f3a78);border-color:#325fcc}
+    .btn.success{background:linear-gradient(180deg,#0e6e56,#0b5)
+    }
+    .btn.danger{background:linear-gradient(180deg,#9b2c2c,#7b1f1f);border-color:#b63d3d}
+    .btn.warn{background:linear-gradient(180deg,#b88912,#8a6a0d);border-color:#e6b422}
+    .btn.ghost{background:transparent}
+    .table{width:100%;border-collapse:collapse}
+    .table th,.table td{padding:10px;border-bottom:1px solid #1d2848}
+    .table th{font-weight:600;text-align:left;color:#c8d3ea}
+    .table tr:hover{background:#0e1730}
+    .pill{display:inline-flex;gap:6px;align-items:center;padding:4px 10px;border-radius:999px;border:1px solid #283862;background:#0a1327;color:#cbd5e1;font-size:.8rem}
+    .status-present{border-color:#1f7a4a;background:#0c2a1e;color:#9be7c4}
+    .status-absent{border-color:#7a1f1f;background:#2a0c0c;color:#ffb3b3}
+    .status-late{border-color:#7a6a1f;background:#2a260c;color:#ffe9a3}
+    .footer{opacity:.7;font-size:.9rem;text-align:center;margin:24px 0}
+    .hidden{display:none !important}
+    .divider{height:1px;background:#1c2742;margin:4px 0 16px}
+    .tag{display:inline-block;padding:4px 8px;border-radius:999px;background:#0d1a35;border:1px solid #1f2c4e;color:#9fb3d2;font-size:.75rem}
+  </style>
+</head>
+<body>
+<header>
+  <div class="container nav">
+    <div class="brand"><span class="logo"></span> School Register</div>
+    <div class="tabs">
+      <button class="tab active" data-tab="dashboard">Dashboard</button>
+      <button class="tab" data-tab="students">Students</button>
+      <button class="tab" data-tab="attendance">Attendance</button>
+      <button class="tab" data-tab="reports">Reports</button>
+      <button class="tab" data-tab="settings">Settings</button>
+    </div>
+  </div>
+</header>
+
+<main class="container" id="app">
+  <!-- DASHBOARD -->
+  <section id="dashboard" class="grid">
+    <div class="card">
+      <h2>Quick Actions</h2>
+      <div class="row">
+        <button class="btn primary" onclick="switchTab('students')">Add Students</button>
+        <button class="btn primary" onclick="switchTab('attendance')">Mark Today’s Attendance</button>
+        <button class="btn" onclick="seedDemo()">Load Demo Data</button>
+        <button class="btn warn" onclick="exportBackup()">Export Backup</button>
+        <button class="btn danger" onclick="clearAll()">Clear All Data</button>
+      </div>
+      <div class="divider"></div>
+      <div class="row">
+        <div class="pill"><strong id="kpiStudents">0</strong> Students</div>
+        <div class="pill"><strong id="kpiClasses">0</strong> Classes</div>
+        <div class="pill"><strong id="kpiToday">0%</strong> Today Present</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STUDENTS -->
+  <section id="students" class="grid hidden">
+    <div class="card">
+      <h2>Students</h2>
+      <div class="row">
+        <div>
+          <label>Name</label>
+          <input id="s-name" placeholder="e.g., Ali Khan" />
+        </div>
+        <div>
+          <label>Class</label>
+          <input id="s-class" placeholder="e.g., 5-A" />
+        </div>
+        <div>
+          <label>Roll No</label>
+          <input id="s-roll" placeholder="e.g., 101" />
+        </div>
+        <div>
+          <label>Parent Contact</label>
+          <input id="s-parent" placeholder="e.g., 03001234567" />
+        </div>
+        <div style="align-self:flex-end">
+          <button class="btn primary" onclick="addStudent()">Add Student</button>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="row">
+        <div>
+          <label>Filter by Class</label>
+          <input id="filter-class" placeholder="All" oninput="renderStudents()" />
+        </div>
+        <div>
+          <label>Search by Name</label>
+          <input id="filter-name" placeholder="Search..." oninput="renderStudents()" />
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div style="overflow:auto">
+        <table class="table" id="students-table"></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ATTENDANCE -->
+  <section id="attendance" class="grid hidden">
+    <div class="card">
+      <h2>Attendance</h2>
+      <div class="row">
+        <div>
+          <label>Date</label>
+          <input type="date" id="att-date" />
+        </div>
+        <div>
+          <label>Class</label>
+          <input id="att-class" placeholder="e.g., 5-A" oninput="renderAttendanceList()" />
+        </div>
+        <div style="align-self:flex-end">
+          <button class="btn" onclick="markAll('Present')">Mark All Present</button>
+        </div>
+        <div style="align-self:flex-end">
+          <button class="btn warn" onclick="markAll('Absent')">Mark All Absent</button>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div id="attendance-list" class="grid"></div>
+      <div class="divider"></div>
+      <div class="row">
+        <div style="flex:1 1 auto"></div>
+        <button class="btn primary" style="max-width:240px" onclick="saveAttendance()">Save Attendance</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- REPORTS -->
+  <section id="reports" class="grid hidden">
+    <div class="card">
+      <h2>Reports</h2>
+      <div class="row">
+        <div>
+          <label>Class</label>
+          <input id="rep-class" placeholder="All" />
+        </div>
+        <div>
+          <label>From</label>
+          <input type="date" id="rep-from" />
+        </div>
+        <div>
+          <label>To</label>
+          <input type="date" id="rep-to" />
+        </div>
+        <div style="align-self:flex-end">
+          <button class="btn" onclick="renderReport()">Generate</button>
+        </div>
+        <div style="align-self:flex-end">
+          <button class="btn primary" onclick="exportCSV()">Export CSV</button>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div style="overflow:auto">
+        <table class="table" id="report-table"></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="settings" class="grid hidden">
+    <div class="card">
+      <h2>Settings</h2>
+      <p class="tag">Local-only demo. Data is stored in your browser (localStorage).</p>
+      <div class="row">
+        <button class="btn" onclick="seedDemo()">Load Demo Data</button>
+        <button class="btn warn" onclick="exportBackup()">Export Backup (JSON)</button>
+        <button class="btn danger" onclick="clearAll()">Clear All Data</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="container footer">Made for quick prototyping · Upgrade later to Firebase/Flutter for production</footer>
+
+<script>
+  // ======= Simple Local Storage Helpers =======
+  const LS_KEYS = { students: 'sr_students', attendance: 'sr_att' };
+  const getStudents = () => JSON.parse(localStorage.getItem(LS_KEYS.students) || '[]');
+  const setStudents = (arr) => localStorage.setItem(LS_KEYS.students, JSON.stringify(arr));
+  const getAttendance = () => JSON.parse(localStorage.getItem(LS_KEYS.attendance) || '[]');
+  const setAttendance = (arr) => localStorage.setItem(LS_KEYS.attendance, JSON.stringify(arr));
+
+  const uid = () => Math.random().toString(36).slice(2,10);
+
+  // ======= Tabs =======
+  function switchTab(id){
+    document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===id));
+    document.querySelectorAll('main section').forEach(s=>s.classList.toggle('hidden', s.id!==id));
+    if(id==='students') renderStudents();
+    if(id==='attendance') { initAttDate(); renderAttendanceList(); }
+    if(id==='reports') { initReportDates(); renderReport(); }
+    updateKPIs();
+  }
+  document.querySelectorAll('.tab').forEach(btn=>btn.addEventListener('click',()=>switchTab(btn.dataset.tab)));
+
+  // ======= Dashboard KPIs =======
+  function updateKPIs(){
+    const students = getStudents();
+    const classes = [...new Set(students.map(s=>s.class.trim()).filter(Boolean))];
+    const today = new Date();
+    const dstr = today.toISOString().slice(0,10);
+    const att = getAttendance().filter(r=>r.date===dstr);
+    const present = att.filter(r=>r.status==='Present').length;
+    const pct = students.length? Math.round((present/students.length)*100):0;
+    document.getElementById('kpiStudents').textContent = students.length;
+    document.getElementById('kpiClasses').textContent = classes.length;
+    document.getElementById('kpiToday').textContent = pct+"%";
+  }
+
+  // ======= Students =======
+  function addStudent(){
+    const name = document.getElementById('s-name').value.trim();
+    const clazz = document.getElementById('s-class').value.trim();
+    const roll = document.getElementById('s-roll').value.trim();
+    const parent = document.getElementById('s-parent').value.trim();
+    if(!name || !clazz){alert('Name and Class are required');return}
+    const students = getStudents();
+    students.push({id: uid(), name, class: clazz, rollNo: roll, parentContact: parent});
+    setStudents(students);
+    document.getElementById('s-name').value = '';
+    document.getElementById('s-class').value = '';
+    document.getElementById('s-roll').value = '';
+    document.getElementById('s-parent').value = '';
+    renderStudents(); updateKPIs();
+  }
+
+  function renderStudents(){
+    const t = document.getElementById('students-table');
+    const students = getStudents();
+    const fClass = (document.getElementById('filter-class').value||'').toLowerCase();
+    const fName = (document.getElementById('filter-name').value||'').toLowerCase();
+    const rows = students
+      .filter(s => (!fClass || s.class.toLowerCase().includes(fClass)) && (!fName || s.name.toLowerCase().includes(fName)))
+      .sort((a,b)=> (a.class+b.name).localeCompare(b.class+b.name));
+
+    t.innerHTML = `
+      <thead>
+        <tr>
+          <th>Name</th><th>Class</th><th>Roll</th><th>Parent</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(s=>`
+          <tr>
+            <td><input value="${s.name}" oninput="editField('${s.id}','name',this.value)"/></td>
+            <td><input value="${s.class}" oninput="editField('${s.id}','class',this.value)"/></td>
+            <td><input value="${s.rollNo||''}" oninput="editField('${s.id}','rollNo',this.value)"/></td>
+            <td><input value="${s.parentContact||''}" oninput="editField('${s.id}','parentContact',this.value)"/></td>
+            <td>
+              <button class="btn danger" onclick="delStudent('${s.id}')">Delete</button>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>`;
+  }
+
+  function editField(id, key, val){
+    const students = getStudents();
+    const i = students.findIndex(s=>s.id===id);
+    if(i>-1){ students[i][key] = val; setStudents(students); }
+  }
+  function delStudent(id){
+    if(!confirm('Delete this student?')) return;
+    setStudents(getStudents().filter(s=>s.id!==id));
+    renderStudents(); updateKPIs();
+  }
+
+  // ======= Attendance =======
+  function initAttDate(){
+    const el = document.getElementById('att-date');
+    if(!el.value){ el.value = new Date().toISOString().slice(0,10); }
+  }
+  function renderAttendanceList(){
+    const wrap = document.getElementById('attendance-list');
+    const clazz = (document.getElementById('att-class').value||'').toLowerCase();
+    const students = getStudents()
+      .filter(s=>!clazz || s.class.toLowerCase().includes(clazz))
+      .sort((a,b)=> (a.class+a.name).localeCompare(b.class+b.name));
+    const date = document.getElementById('att-date').value;
+    const attMap = Object.fromEntries(getAttendance().filter(r=>r.date===date).map(r=>[r.studentId,r.status]));
+
+    wrap.innerHTML = students.map(s=>{
+      const val = attMap[s.id] || 'Present';
+      return `
+        <div class="row card" style="align-items:center">
+          <div style="flex:2 1 220px">
+            <div style="font-weight:600">${s.name}</div>
+            <div class="muted" style="opacity:.7">Class ${s.class} · Roll ${s.rollNo||'-'}</div>
+          </div>
+          <div style="flex:1 1 160px">
+            <select data-sid="${s.id}" onchange="statusChanged(this)">
+              <option ${val==='Present'?'selected':''}>Present</option>
+              <option ${val==='Absent'?'selected':''}>Absent</option>
+              <option ${val==='Late'?'selected':''}>Late</option>
+            </select>
+          </div>
+          <div style="flex:0 0 auto">
+            <span class="pill ${val==='Present'?'status-present':val==='Absent'?'status-absent':'status-late'}">${val}</span>
+          </div>
+        </div>`
+    }).join('');
+  }
+
+  function statusChanged(sel){
+    const pill = sel.parentElement.nextElementSibling.querySelector('.pill');
+    const v = sel.value;
+    pill.textContent = v;
+    pill.className = 'pill ' + (v==='Present'?'status-present':v==='Absent'?'status-absent':'status-late');
+  }
+
+  function markAll(status){
+    document.querySelectorAll('#attendance-list select').forEach(s=>{ s.value=status; statusChanged(s); });
+  }
+
+  function saveAttendance(){
+    const date = document.getElementById('att-date').value;
+    const rows = Array.from(document.querySelectorAll('#attendance-list select'))
+      .map(sel=>({date, studentId: sel.dataset.sid, status: sel.value}));
+    const others = getAttendance().filter(r=>r.date!==date || !rows.some(n=>n.studentId===r.studentId));
+    setAttendance([...others, ...rows]);
+    alert('Attendance saved for '+date);
+    updateKPIs();
+  }
+
+  // ======= Reports =======
+  function initReportDates(){
+    const to = document.getElementById('rep-to');
+    const from = document.getElementById('rep-from');
+    if(!to.value) to.value = new Date().toISOString().slice(0,10);
+    if(!from.value){
+      const d = new Date(); d.setDate(d.getDate()-30);
+      from.value = d.toISOString().slice(0,10);
+    }
+  }
+
+  function renderReport(){
+    const t = document.getElementById('report-table');
+    const students = getStudents();
+    const clazz = (document.getElementById('rep-class').value||'').toLowerCase();
+    const from = document.getElementById('rep-from').value;
+    const to = document.getElementById('rep-to').value;
+    const A = getAttendance().filter(r=>r.date>=from && r.date<=to);
+
+    const map = new Map();
+    students.filter(s=>!clazz || s.class.toLowerCase().includes(clazz)).forEach(s=>{
+      map.set(s.id,{...s, present:0, absent:0, late:0, total:0});
+    });
+    A.forEach(r=>{
+      if(!map.has(r.studentId)) return;
+      const m = map.get(r.studentId);
+      m.total++; if(r.status==='Present') m.present++; else if(r.status==='Absent') m.absent++; else m.late++;
+    });
+    const rows = [...map.values()].sort((a,b)=> (a.class+a.name).localeCompare(b.class+b.name));
+
+    t.innerHTML = `
+      <thead>
+        <tr>
+          <th>Name</th><th>Class</th><th>Present</th><th>Absent</th><th>Late</th><th>Total</th><th>Attendance %</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(r=>{
+          const pct = r.total? Math.round((r.present/r.total)*100):0;
+          const cls = pct>=90?'status-present': pct>=75?'': 'status-absent';
+          return `<tr>
+            <td>${r.name}</td>
+            <td>${r.class}</td>
+            <td>${r.present}</td>
+            <td>${r.absent}</td>
+            <td>${r.late}</td>
+            <td>${r.total}</td>
+            <td><span class="pill ${cls}">${pct}%</span></td>
+          </tr>`
+        }).join('')}
+      </tbody>`;
+  }
+
+  function exportCSV(){
+    const students = getStudents();
+    const clazz = (document.getElementById('rep-class').value||'').toLowerCase();
+    const from = document.getElementById('rep-from').value;
+    const to = document.getElementById('rep-to').value;
+    const A = getAttendance().filter(r=>r.date>=from && r.date<=to);
+    const map = new Map();
+    students.filter(s=>!clazz || s.class.toLowerCase().includes(clazz)).forEach(s=>{
+      map.set(s.id,{...s, present:0, absent:0, late:0, total:0});
+    });
+    A.forEach(r=>{ if(map.has(r.studentId)){ const m=map.get(r.studentId); m.total++; if(r.status==='Present') m.present++; else if(r.status==='Absent') m.absent++; else m.late++; } });
+    const rows = [['Name','Class','Present','Absent','Late','Total','Attendance %']];
+    map.forEach(m=>{ const pct=m.total?Math.round((m.present/m.total)*100):0; rows.push([m.name,m.class,m.present,m.absent,m.late,m.total,pct+'%']); });
+    const csv = rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = Object.assign(document.createElement('a'),{href:url,download:'attendance_report.csv'});
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  }
+
+  // ======= Backup / Demo / Reset =======
+  function exportBackup(){
+    const payload = { students: getStudents(), attendance: getAttendance() };
+    const blob = new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = Object.assign(document.createElement('a'),{href:url,download:'school_register_backup.json'});
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  }
+
+  function seedDemo(){
+    const students = [
+      {id:uid(), name:'Ali Khan', class:'5-A', rollNo:'101', parentContact:'03001234567'},
+      {id:uid(), name:'Sara Ahmed', class:'5-A', rollNo:'102', parentContact:'03007654321'},
+      {id:uid(), name:'Bilal Hussain', class:'6-B', rollNo:'201', parentContact:'03005551234'},
+      {id:uid(), name:'Ayesha Noor', class:'6-B', rollNo:'202', parentContact:'03007894561'}
+    ];
+    const today = new Date();
+    const dates = [...Array(7)].map((_,i)=>{const d = new Date(); d.setDate(today.getDate()-i); return d.toISOString().slice(0,10)});
+    const attendance = [];
+    students.forEach(s=>{
+      dates.forEach(d=>{
+        const r = Math.random();
+        attendance.push({date:d, studentId:s.id, status: r>0.9?'Late': r>0.2?'Present':'Absent'});
+      });
+    });
+    setStudents(students); setAttendance(attendance);
+    renderStudents(); initAttDate(); renderAttendanceList(); initReportDates(); renderReport(); updateKPIs();
+    alert('Demo data loaded!');
+  }
+
+  function clearAll(){
+    if(!confirm('This will delete all local data. Continue?')) return;
+    localStorage.removeItem(LS_KEYS.students);
+    localStorage.removeItem(LS_KEYS.attendance);
+    renderStudents(); renderAttendanceList(); renderReport(); updateKPIs();
+    alert('Cleared.');
+  }
+
+  // ======= Init =======
+  switchTab('dashboard');
+  updateKPIs();
+</script>
+</body>
+</html>
